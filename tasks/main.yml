@@ -1,0 +1,30 @@
+- name: Set cmdline temp dir
+  set_fact:
+    android_cmdline_temp_dir: "/tmp/cmdlinetools"
+
+- name: Create Android SDK dir structure
+  file:
+    path: "{{ item.path }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { path: "{{ android_sdk_location }}", state: "directory" }
+    - { path: "{{ android_cmdline_temp_dir }}", state: "directory" }
+
+- name: Download Android command line tools
+  unarchive:
+    src: "{{ commandline_tools_link }}"
+    dest: "{{ android_cmdline_temp_dir }}"
+    remote_src: yes
+    creates: "{{ android_cmdline_temp_dir }}/cmdline-tools"
+
+- name: Accept licenses
+  shell: 
+    chdir: "{{ android_cmdline_temp_dir }}/cmdline-tools/bin"
+    cmd: "yes | ./sdkmanager --sdk_root={{ android_sdk_location }} --licenses"
+  changed_when: false
+
+- name: Install Android SDK
+  command: "{{ android_cmdline_temp_dir }}/cmdline-tools/bin/sdkmanager --sdk_root={{ android_sdk_location }} --install {{ item }}"
+  with_items: "{{ android_dependencies }}" 
+  register: install_output
+  changed_when: install_output | regex_search('Downloading')
