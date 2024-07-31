@@ -1,4 +1,4 @@
-Role Name
+Ansible Android SDK Role
 =========
 
 Ansible role that installs Android SDK.
@@ -46,7 +46,7 @@ Including an example of how to use your role (for instance, with variables passe
     - hosts: servers
       become: true
       roles:
-         - android-sdk
+         - shamilovstas/ansible-android-role
 
 License
 -------
