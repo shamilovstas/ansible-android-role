@@ -1,30 +1,73 @@
-- name: Set cmdline temp dir
-  set_fact:
-    android_cmdline_temp_dir: "/tmp/cmdlinetools"
+- name: Include OS-specific variables
+  include_vars: '{{ ansible_os_family }}.yml'
 
-- name: Create Android SDK dir structure
+- name: Install dependencies
+  become: true
+  package:
+    name:
+      - unzip
+    state: present
+  when: ansible_os_family != 'Darwin'
+
+- name: Install dependencies (OSX)
+  block:
+    - name: Find brew binary
+      command: which brew
+      register: brew_which
+    - name: Get owner of brew binary
+      stat:
+        path: "{{ brew_which.stdout }}"
+      register: brew_stat
+    - name: "Install package"
+      homebrew:
+        name:
+          - "{{ openjdk_pkg }}"
+          - unzip
+        state: present
+        update_homebrew: false
+      become: true
+      become_user: "{{ brew_stat.stat.pw_name }}"
+      environment:
+        HOMEBREW_NO_AUTO_UPDATE: "True"
+    - name: Symlink java
+      become: true
+      file:
+        src: "/usr/local/opt/openjdk@17/libexec/openjdk.jdk"
+        dest: "/Library/Java/JavaVirtualMachines/openjdk-17.jdk"
+        state: link
+  when:
+    - ansible_os_family == 'Darwin'
+
+- name: Create Android SDK directory
   file:
-    path: "{{ item.path }}"
-    state: "{{ item.state }}"
-  with_items:
-    - { path: "{{ android_sdk_location }}", state: "directory" }
-    - { path: "{{ android_cmdline_temp_dir }}", state: "directory" }
+    path: "{{ android_sdk_location }}"
+    state: directory
 
-- name: Download Android command line tools
-  unarchive:
-    src: "{{ commandline_tools_link }}"
-    dest: "{{ android_cmdline_temp_dir }}"
-    remote_src: yes
-    creates: "{{ android_cmdline_temp_dir }}/cmdline-tools"
+- name: Check that sdkmanager is installed
+  stat:
+    path: "{{ android_sdk_location }}/cmdline-tools/latest/bin/sdkmanager"
+  register: sdkmanager_installed
 
-- name: Accept licenses
-  shell: 
-    chdir: "{{ android_cmdline_temp_dir }}/cmdline-tools/bin"
-    cmd: "yes | ./sdkmanager --sdk_root={{ android_sdk_location }} --licenses"
-  changed_when: false
+- name: Install Android command line tools
+  when: not sdkmanager_installed.stat.exists
+  block:
+    - name: Create Android SDK dir structure
+      file:
+        path: "{{ item.path }}"
+        state: "{{ item.state }}"
+      with_items:
+        - { path: "{{ android_cmdline_temp_dir }}", state: "directory" }
+        - { path: "{{ android_sdk_location }}/cmdline-tools/latest", state: "directory" }
 
-- name: Install Android SDK
-  command: "{{ android_cmdline_temp_dir }}/cmdline-tools/bin/sdkmanager --sdk_root={{ android_sdk_location }} --install {{ item }}"
-  with_items: "{{ android_dependencies }}" 
-  register: install_output
-  changed_when: install_output | regex_search('Downloading')
+    - name: Download Android command line tools
+      unarchive:
+        src: "{{ commandline_tools_link }}"
+        dest: "{{ android_cmdline_temp_dir }}"
+        remote_src: yes
+        creates: "{{ android_cmdline_temp_dir }}/cmdline-tools"
+
+    - name: Fix directory structure
+      copy:
+        src: "{{ android_cmdline_temp_dir }}/cmdline-tools/"
+        dest: "{{ android_sdk_location }}/cmdline-tools/latest"
+        remote_src: yes

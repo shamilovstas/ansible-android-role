@@ -1,11 +1,5 @@
 ---
 
+android_cmdline_temp_dir: /tmp/cmdlinetools
 android_sdk_location: /usr/local/android/sdk
 commandline_tools_link: https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-
-android_dependencies:
-  - "build-tools;35.0.0"
-  - "platforms;android-34"
-  - "cmdline-tools;latest"
-  - "extras;google;m2repository"
-  - "tools"
