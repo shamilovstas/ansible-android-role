@@ -3,3 +3,6 @@
 android_cmdline_temp_dir: /tmp/cmdlinetools
 android_sdk_location: /usr/local/android/sdk
 commandline_tools_link: https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+android_sdk_mode: "0755"
+android_sdk_owner: root
+android_sdk_group: root
