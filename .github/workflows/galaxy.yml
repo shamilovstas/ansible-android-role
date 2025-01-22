@@ -1,5 +1,5 @@
 ---
-name: 'Publish latest release to Ansible Galaxy'
+name: 'Ansible Android role workflow'
 
 on:
   push:
